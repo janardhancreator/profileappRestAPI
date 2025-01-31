@@ -1,22 +1,75 @@
-# Maven
-# Build your Java project and run tests with Apache Maven.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/java
+# Docker
+# Build and push an image to Azure Container Registry
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
+resources:
+- repo: self
 
-steps:
-- task: Maven@3
-  inputs:
-    mavenPomFile: 'profileapp/pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.17'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
+variables:
+  # Container registry service connection established during pipeline creation
+  dockerRegistryServiceConnection: 'fb50f113-c425-4f05-8d8b-056af5bef897'
+  imageRepository: 'profileapimavenproject'
+  containerRegistry: 'janardhanregistry.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/profileapp/Dockerfile'
+  tag: '$(Build.BuildId)'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build and push stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+    - task: Maven@4
+      inputs:
+        azureSubscription: 'MML Learners(2a3c6418-97b9-4d96-a24b-2c2d7633d375)'
+        mavenPomFile: 'profileapp/pom.xml'
+        mavenOptions: '-Xmx3072m'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.17'
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        goals: 'package'
+    - task: CopyFiles@2
+      inputs:
+         SourceFolder: $(Build.SourcesDirectory)/profileapp
+         Contents: 'profilerestappaks.yml'
+         TargetFolder: $(Build.ArtifactStagingDirectory)/profileapp
+    - task: PublishBuildArtifacts@1
+      inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/profileapp'
+            ArtifactName: 'drop'
+            publishLocation: 'Container'
+    # - task: CopyFiles@2
+    #   displayName: Copy Kubernetes deployment file
+    #   inputs:
+    #     SourceFolder: '$(Build.SourcesDirectory)/target'
+    #     Contents: '**/*.jar'
+    #     TargetFolder: '$(Build.ArtifactStagingDirectory)/drop'
+    
+    # - task: PublishBuildArtifacts@1
+    #   inputs:
+    #     PathtoPublish: '$(Build.ArtifactStagingDirectory)/drop'
+    #     ArtifactName: 'drop'
+    #     publishLocation: 'Container'
+    
+
+
