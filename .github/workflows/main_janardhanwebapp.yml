@@ -53,5 +53,6 @@ jobs:
         with:
           app-name: 'janardhanwebapp'
           slot-name: 'Production'
-          package: '${{ github.workspace }}/target/*.jar'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D8F0B40E9FE241088054AE794FC12757 }}
+          package: '*.jar'
+          
