@@ -37,12 +37,24 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(tag)
-      - task: CopyFiles@2
-        inputs:
-          Contents: '**'
-          TargetFolder: 
-          - task: PublishBuildArtifacts@1
-            inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-              ArtifactName: 'drop'
-              publishLocation: 'Container'
+    - task: Maven@4
+      inputs:
+        azureSubscription: 'MML Learners(2a3c6418-97b9-4d96-a24b-2c2d7633d375)'
+        mavenPomFile: 'profileapp/pom.xml'
+        mavenOptions: '-Xmx3072m'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.17'
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        goals: 'package'
+    - task: CopyFiles@2
+      inputs:
+         SourceFolder: $(Build.SourcesDirectory)/profileapp
+         Contents: 'profilerestappaks.yml'
+         TargetFolder: $(Build.ArtifactStagingDirectory)/profileapp
+    - task: PublishBuildArtifacts@1
+      inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/profileapp'
+            ArtifactName: 'drop'
+            publishLocation: 'Container'
